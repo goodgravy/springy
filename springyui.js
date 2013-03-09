@@ -37,6 +37,7 @@ jQuery.fn.springy = function(params) {
 	var ctx = canvas.getContext("2d");
 
 	var layout = this.layout = new Layout.ForceDirected(graph, stiffness, repulsion, damping);
+	// var layout = this.layout = new Layout.Flowchart(graph, stiffness, repulsion, damping);
 
 	// calculate bounding box of graph layout.. with ease-in
 	var currentBB = layout.getBoundingBox();

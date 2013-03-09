@@ -25,6 +25,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+var GRAPH_SIZE = 10.0;
+
 var Graph = function() {
 	this.nodeSet = {};
 	this.nodes = [];
@@ -40,15 +42,17 @@ var Node = function(id, data) {
 	this.id = id;
 	this.data = (data !== undefined) ? data : {};
 
-// Data fields used by layout algorithm in this file:
+// Data fields used by ForceDirected layout algorithm in this file:
 //   	this.data.mass 
+// Data fields automatically populated by FlowChart algorithm:
+// 		this.data.distance
 // Data used by default renderer in springyui.js
 //   	this.data.label
 };
 
 var Edge = function(id, source, target, data) {
 	this.id = id;
-        /** @type {Node} */
+		/** @type {Node} */
 	this.source = source;
 	this.target = target;
 	this.data = (data !== undefined) ? data : {};
@@ -70,13 +74,13 @@ Graph.prototype.addNode = function(node) {
 };
 
 Graph.prototype.addNodes = function() {
-        // accepts variable number of arguments, where each argument
-        // is a string that becomes both node identifier and label
-        for (var i = 0; i < arguments.length; i++) {
-                var name = arguments[i];
-                var node = new Node(name, data = {label:name});
-                this.addNode(node);
-        }
+		// accepts variable number of arguments, where each argument
+		// is a string that becomes both node identifier and label
+		for (var i = 0; i < arguments.length; i++) {
+				var name = arguments[i];
+				var node = new Node(name, data = {label:name});
+				this.addNode(node);
+		}
 };
 
 Graph.prototype.addEdge = function(edge) {
@@ -110,22 +114,22 @@ Graph.prototype.addEdge = function(edge) {
 };
 
 Graph.prototype.addEdges = function() {
-        // accepts variable number of arguments, where each argument
-        // is a triple [nodeid1, nodeid2, attributes]
-        for (var i = 0; i < arguments.length; i++) {
-                var e = arguments[i];
-                var node1 = this.nodeSet[e[0]];
-                if (node1 == undefined) {
-                        throw new TypeError("invalid node name: " + e[0]);
-                }
-                var node2 = this.nodeSet[e[1]];
-                if (node2 == undefined) {
-                        throw new TypeError("invalid node name: " + e[1]);
-                }
-                var attr = e[2];
+		// accepts variable number of arguments, where each argument
+		// is a triple [nodeid1, nodeid2, attributes]
+		for (var i = 0; i < arguments.length; i++) {
+				var e = arguments[i];
+				var node1 = this.nodeSet[e[0]];
+				if (node1 == undefined) {
+						throw new TypeError("invalid node name: " + e[0]);
+				}
+				var node2 = this.nodeSet[e[1]];
+				if (node2 == undefined) {
+						throw new TypeError("invalid node name: " + e[1]);
+				}
+				var attr = e[2];
 
-                this.newEdge(node1, node2, attr);
-        }
+				this.newEdge(node1, node2, attr);
+		}
 };
 
 Graph.prototype.newNode = function(data) {
@@ -148,6 +152,30 @@ Graph.prototype.getEdges = function(node1, node2) {
 	}
 
 	return [];
+};
+
+// return a subset of nodes which satisfy a condition
+Graph.prototype.getNodesWhere = function (where) {
+	return this.nodes.filter(where);
+};
+
+// return array of nodes which have edges to this target node
+Graph.prototype.parentsOf = function (node) {
+	var result = [];
+	this.edges.forEach(function (edge) {
+		if (edge.target === node && result.indexOf(edge.source) < 0) {
+			result.push(edge.source);
+		}
+	});
+	return result;
+};
+
+// return list of nodes which only have outgoing edges
+Graph.prototype.getStartNodes = function () {
+	var that = this;
+	return this.getNodesWhere(function (node) {
+		return that.parentsOf(node).length === 0;
+	});
 };
 
 // remove a node and it's associated edges from the graph
@@ -277,7 +305,10 @@ Layout.ForceDirected = function(graph, stiffness, repulsion, damping) {
 Layout.ForceDirected.prototype.point = function(node) {
 	if (!(node.id in this.nodePoints)) {
 		var mass = (node.data.mass !== undefined) ? node.data.mass : 1.0;
-		this.nodePoints[node.id] = new Layout.ForceDirected.Point(Vector.random(), mass);
+		var initialPositionVector = ("initialPosition" in node.data) ?
+			new Vector(node.data.initialPosition.x, node.data.initialPosition.y) :
+			Vector.random();
+		this.nodePoints[node.id] = new Layout.ForceDirected.Point(initialPositionVector, mass);
 	}
 
 	return this.nodePoints[node.id];
@@ -438,16 +469,20 @@ Layout.ForceDirected.prototype.start = function(render, done) {
 
 		if (render !== undefined) {
 			render();
-                }
+		}
 
-		// stop simulation when energy of the system goes below a threshold
-		if (t.totalEnergy() < 0.01) {
+		// stop simulation when an energy condition is met
+		if (t.shouldStop(t.totalEnergy())) {
 			t._started = false;
 			if (done !== undefined) { done(); }
 		} else {
 			Layout.requestAnimationFrame(step);
 		}
 	});
+};
+
+Layout.ForceDirected.prototype.shouldStop = function (energy) {
+	return energy < 0.01;
 };
 
 // Find the nearest point to a particular position
@@ -499,7 +534,7 @@ Vector = function(x, y) {
 };
 
 Vector.random = function() {
-	return new Vector(10.0 * (Math.random() - 0.5), 10.0 * (Math.random() - 0.5));
+	return new Vector(GRAPH_SIZE * (Math.random() - 0.5), GRAPH_SIZE * (Math.random() - 0.5));
 };
 
 Vector.prototype.add = function(v2) {
@@ -559,6 +594,129 @@ Layout.ForceDirected.Spring = function(point1, point2, length, k) {
 // 	return Math.abs(ac.x * n.x + ac.y * n.y);
 // };
 
+// ----------
+// Alternative layout, something like a flowchart
+
+Layout.Flowchart = function (graph, stiffness, repulsion, damping) {
+	this.constructor(graph, stiffness, repulsion, damping);
+	this.lastEnergy = 0;
+	this.setInitialPositions();
+};
+
+Layout.Flowchart.prototype = new Layout.ForceDirected;
+
+Layout.Flowchart.prototype.updatePosition = function (timestep) {
+	var that = this;
+	var startNodes = that.graph.getStartNodes();
+	that.eachNode(function (node, point) {
+		// don't move the start node
+		if (startNodes.indexOf(node) < 0) {
+			var movement = point.v.multiply(timestep),
+				nextPoint;
+			movement.x = 0; // don't move side-to-side
+			nextPoint = point.p.add(movement);
+
+			// children must be below parents
+			that.graph.parentsOf(node).forEach(function (parent) {
+				if (nextPoint.y - that.point(parent).p.y >= that.yStep / 2) {
+					point.p = nextPoint;
+				}
+			});
+		}
+	});
+};
+
+Layout.Flowchart.prototype.shouldStop = function (energy) {
+	var that = this;
+	if (Math.abs(that.lastEnergy - energy) < 0.1) {
+		return true;
+	} else {
+		that.lastEnergy = energy;
+		return false;
+	}
+};
+
+Layout.Flowchart.prototype.setInitialPositions = function () {
+	var that = this;
+	// ------ helpers for setInitialPositions ------ //
+
+	// set data.distance on all the nodes
+	// data.distance is the shortest path length from the start node
+	function recurseDistances (startNode) {
+		startNode.data._visited = true;
+
+		for (var targetId in that.graph.adjacency[startNode.id]) {
+			var target = that.graph.nodeSet[targetId];
+			if ('distance' in target.data) {
+				target.data.distance = Math.max(target.data.distance, startNode.data.distance + 1);
+			} else {
+				target.data.distance = startNode.data.distance + 1;
+			}
+			if (!target.data._visited) {
+				recurseDistances(target);
+			}
+		}
+	};
+
+	function hasOneChild (node) {
+		function sizeOf (obj) {
+			var size = 0, key;
+			for (key in obj) {
+				if (obj.hasOwnProperty(key)) size++;
+			}
+			return size;
+		}
+		return 1 === sizeOf(that.graph.adjacency[node.id]);
+	}
+
+	// ------ end helpers for setInitialPositions ------ //
+
+	var startNodes = that.graph.getStartNodes(),
+		startNode,
+		maxDistance = 0,
+		yStep;
+	if (startNodes.length !== 1) {
+		throw "Flowcharts must have exactly one start node";
+	}
+	startNode = startNodes[0];
+	startNode.data.distance = 0;
+	recurseDistances(startNode);
+	that.graph.nodes.forEach(function (node) {
+		maxDistance = Math.max(node.data.distance, maxDistance);
+	});
+	yStep = GRAPH_SIZE / maxDistance;
+	that.yStep = yStep; // needed in other layout code
+
+	// nodes are initially evenly spaced down the graph by distance (Y)
+	that.graph.nodes.forEach(function (node) {
+		node.data.initialPosition = new Vector(0, (-GRAPH_SIZE / 2) + (yStep * node.data.distance));
+	});
+
+	// nodes are initially evenly spaced across the graph (X)
+	// we group nodes together in strata, by distance
+	for (var distance = 0; distance <= maxDistance; distance++) {
+		var nodes = that.graph.getNodesWhere(function (node) {
+				return node.data.distance === distance;
+			}),
+			xStep = GRAPH_SIZE / (nodes.length + 1);
+
+		nodes.forEach(function (node, idx) {
+			// we prefer straight lines down graph if possible:
+			// for single-parent, only-child nodes: align horizontally with parent
+			var parents = that.graph.parentsOf(node);
+			if (parents.length === 1 && hasOneChild(parents[0])) {
+				node.data.initialPosition.x = parents[0].data.initialPosition.x;
+			} else {
+				node.data.initialPosition.x = (-GRAPH_SIZE / 2) + (xStep * (idx + 1));
+			}
+		});
+	}
+
+	that.graph.nodes.forEach(function (node) {
+		console.info('set initial: '+JSON.stringify(node.data));
+	});
+}
+
 // Renderer handles the layout rendering loop
 function Renderer(layout, clear, drawEdge, drawNode) {
 	this.layout = layout;
@@ -592,27 +750,26 @@ Renderer.prototype.start = function() {
 //https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/forEach
 if ( !Array.prototype.forEach ) {
   Array.prototype.forEach = function( callback, thisArg ) {
-    var T, k;
-    if ( this == null ) {
-      throw new TypeError( " this is null or not defined" );
-    }
-    var O = Object(this);
-    var len = O.length >>> 0; // Hack to convert O.length to a UInt32
-    if ( {}.toString.call(callback) != "[object Function]" ) {
-      throw new TypeError( callback + " is not a function" );
-    }
-    if ( thisArg ) {
-      T = thisArg;
-    }
-    k = 0;
-    while( k < len ) {
-      var kValue;
-      if ( k in O ) {
-        kValue = O[ k ];
-        callback.call( T, kValue, k, O );
-      }
-      k++;
-    }
+	var T, k;
+	if ( this == null ) {
+	  throw new TypeError( " this is null or not defined" );
+	}
+	var O = Object(this);
+	var len = O.length >>> 0; // Hack to convert O.length to a UInt32
+	if ( {}.toString.call(callback) != "[object Function]" ) {
+	  throw new TypeError( callback + " is not a function" );
+	}
+	if ( thisArg ) {
+	  T = thisArg;
+	}
+	k = 0;
+	while( k < len ) {
+	  var kValue;
+	  if ( k in O ) {
+		kValue = O[ k ];
+		callback.call( T, kValue, k, O );
+	  }
+	  k++;
+	}
   };
 }
-

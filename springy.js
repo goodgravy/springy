@@ -711,10 +711,6 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 			}
 		});
 	}
-
-	that.graph.nodes.forEach(function (node) {
-		console.info('set initial: '+JSON.stringify(node.data));
-	});
 }
 
 // Renderer handles the layout rendering loop

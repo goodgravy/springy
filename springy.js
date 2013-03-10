@@ -760,17 +760,18 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 			distance = 0,
 			parentDistance = -1;
 
-		parents.forEach(function (parent) {
+		for (var i = 0; i < parents.length; i++) {
+			var parent = parents[i];
 			if (!("distance" in parent.data)) {
 				// not ready to set distance on this yet
 				return false;
 			} else {
 				parentDistance = Math.max(parent.data.distance, parentDistance);
 			}
-		});
+		}
+
 		node.data.distance = parentDistance + 1;
 		maxDistance = node.data.distance;
-		node.data.label += " (" + node.data.distance + ")";
 		return true;
 	});
 

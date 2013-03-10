@@ -290,6 +290,99 @@ Graph.prototype.notify = function() {
 	});
 };
 
+// An implementation of Tarjan's algorithm
+// http://en.wikipedia.org/wiki/Tarjan's_strongly_connected_components_algorithm
+// returns an array of arrays - each being a SCC of nodes
+Graph.prototype.getStronglyConnectedComponents = function () {
+	var that = this,
+		index = 0,
+		stack = [],
+		sccs = [];
+
+	this.nodes.forEach(function (node) {
+		if (!("_tarjan" in node)) {
+			node._tarjan = {};
+		}
+	});
+	this.nodes.forEach(function (node) {
+		if (!("index" in node._tarjan)) {
+			strongConnect(node);
+		}
+	});
+	this.nodes.forEach(function (node) {
+		if ("_tarjan" in node) {
+			delete node._tarjan;
+		}
+	});
+
+	return sccs;
+
+	function strongConnect (node) {
+		node._tarjan.index = index;
+		node._tarjan.lowlink = index;
+		index += 1;
+		stack.push(node);
+
+		for (var targetId in that.adjacency[node.id]) {
+			var target = that.nodeSet[targetId];
+			if (!("index" in target._tarjan)) {
+				// target has not been visited yet
+				strongConnect(target);
+				node._tarjan.lowlink = Math.min(node._tarjan.lowlink, target._tarjan.lowlink);
+			} else if (stack.indexOf(target) >= 0) {
+				// target is in the current SCC
+				node._tarjan.lowlink = Math.min(node._tarjan.lowlink, target._tarjan.index);
+			}
+		}
+
+		if (node._tarjan.lowlink === node._tarjan.index) {
+			var scc = [];
+			while (stack.length > 0) {
+				var sccNode = stack.pop();
+				scc.push(sccNode);
+				if (sccNode === node) break;
+			}
+			sccs.push(scc);
+		}
+	}
+};
+
+// call callback for startNode and each node accessible from startNode, breadth first
+Graph.prototype.doBreadthFirstFrom = function (startNode, callback) {
+	var queue = [startNode];
+
+	this.nodes.forEach(function (node) {
+		if (!("_bfs" in node)) {
+			node._bfs = {};
+		}
+	});
+
+	startNode._bfs.marked = true;
+	while (queue.length > 0) {
+		var node = queue.shift(),
+			processed = callback(node);
+
+		if (!processed) {
+			queue.push(node);
+			continue;
+		}
+
+		for (var targetId in this.adjacency[node.id]) {
+			var target = this.nodeSet[targetId];
+			if (!target._bfs.marked) {
+				target._bfs.marked = true;
+				queue.push(target);
+			}
+		}
+	}
+
+	this.nodes.forEach(function (node) {
+		if ("_bfs" in node) {
+			delete node._bfs;
+		}
+	});
+};
+
 // -----------
 var Layout = {};
 Layout.ForceDirected = function(graph, stiffness, repulsion, damping) {
@@ -640,24 +733,6 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 	var that = this;
 	// ------ helpers for setInitialPositions ------ //
 
-	// set data.distance on all the nodes
-	// data.distance is the shortest path length from the start node
-	function recurseDistances (startNode) {
-		startNode.data._visited = true;
-
-		for (var targetId in that.graph.adjacency[startNode.id]) {
-			var target = that.graph.nodeSet[targetId];
-			if ('distance' in target.data) {
-				target.data.distance = Math.max(target.data.distance, startNode.data.distance + 1);
-			} else {
-				target.data.distance = startNode.data.distance + 1;
-			}
-			if (!target.data._visited) {
-				recurseDistances(target);
-			}
-		}
-	};
-
 	function hasOneChild (node) {
 		function sizeOf (obj) {
 			var size = 0, key;
@@ -676,14 +751,29 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 		maxDistance = 0,
 		yStep;
 	if (startNodes.length !== 1) {
-		throw "Flowcharts must have exactly one start node";
+		throw "Flowcharts must have exactly one start node: found "+JSON.stringify(startNodes);
 	}
 	startNode = startNodes[0];
-	startNode.data.distance = 0;
-	recurseDistances(startNode);
-	that.graph.nodes.forEach(function (node) {
-		maxDistance = Math.max(node.data.distance, maxDistance);
+
+	that.graph.doBreadthFirstFrom(startNode, function (node) {
+		var parents = that.graph.parentsOf(node),
+			distance = 0,
+			parentDistance = -1;
+
+		parents.forEach(function (parent) {
+			if (!("distance" in parent.data)) {
+				// not ready to set distance on this yet
+				return false;
+			} else {
+				parentDistance = Math.max(parent.data.distance, parentDistance);
+			}
+		});
+		node.data.distance = parentDistance + 1;
+		maxDistance = node.data.distance;
+		node.data.label += " (" + node.data.distance + ")";
+		return true;
 	});
+
 	yStep = GRAPH_SIZE / maxDistance;
 	that.yStep = yStep; // needed in other layout code
 

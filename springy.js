@@ -758,8 +758,8 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 			distance = 0,
 			parentDistance = -1,
 			inboundEdges = [],
-			xRangeStart,
-			xRangeEnd;
+			xRangeMean,
+			xRangeSize;
 
 		for (var i = 0; i < parents.length; i++) {
 			var parent = parents[i];
@@ -777,44 +777,40 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 
 		node.data.distance = parentDistance + 1;
 		maxDistance = node.data.distance;
-		xRangeStart = -GRAPH_SIZE / 2, xRangeEnd = GRAPH_SIZE / 2;
+		xRangeMean = 0;
 
 		inboundEdges.sort(function (edgeA, edgeB) {
-			return edgeA.data.xRange.start - edgeB.data.xRange.start;
+			return edgeA.data.xRange.mean - edgeB.data.xRange.mean;
 		});
-		if (inboundEdges.length > 0) { // not start node
-			xRangeStart = xRangeEnd = inboundEdges[0].data.xRange.start;
+		if (inboundEdges.length === 0) { // start node
+			xRangeSize = GRAPH_SIZE;
+		} else {
+			xRangeSize = 0;
+			inboundEdges.forEach(function (edge) {
+				xRangeSize += edge.data.xRange.size;
+				xRangeMean += edge.data.xRange.mean * edge.data.xRange.size;
+			});
+			xRangeMean /= xRangeSize;
 		}
-		inboundEdges.forEach(function (edge) {
-			if (edge.data.xRange.start === xRangeEnd) { // contiguous
-				xRangeEnd = edge.data.xRange.end;
-			} else { // TODO
-				// find total range across all sections
-				// find average x - mean of all ranges
-				// compare with nodes at same distance strata
-				throw "can't handle non-contiguous ranges yet";
-			}
-		});
-		node.data.xRange = {start: xRangeStart, end: xRangeEnd};
+		node.data.xRange = {size: xRangeSize, mean: xRangeMean};
 
 		var numChildren = sizeOf(that.graph.adjacency[node.id]),
-			childRangeStep = (xRangeEnd - xRangeStart) / numChildren,
-			currentXRangeStart = xRangeStart;
+			childXRangeSize = xRangeSize / numChildren,
+			currentXRangeMean = xRangeMean - xRangeSize / 2 + childXRangeSize / 2;
 
 		for (var childId in that.graph.adjacency[node.id]) {
 			var child = that.graph.nodeSet[childId],
 				edges = that.graph.adjacency[node.id][childId],
 				edge;
 			edge = edges[0];
-			if (!("data" in edge)) { edge.data = {}}
 			if (!("xRange" in edge.data)) { edge.data.xRange = {}}
 			edge.data.xRange = {
-				start: currentXRangeStart,
-				end: currentXRangeStart + childRangeStep
+				mean: currentXRangeMean,
+				size: childXRangeSize
 			};
-			// console.log(node.data.label+": "+JSON.stringify(edge.data.xRange));
+			console.log(node.data.label+": "+JSON.stringify(edge.data.xRange));
 			// edge.data.label = JSON.stringify(edge.data.xRange);
-			currentXRangeStart += childRangeStep;
+			currentXRangeMean += childXRangeSize;
 		}
 
 		return true;
@@ -823,9 +819,8 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 	yStep = GRAPH_SIZE / maxDistance;
 	that.yStep = yStep; // needed in other layout code
 
-	// nodes are initially evenly spaced down the graph by distance (Y)
 	that.graph.nodes.forEach(function (node) {
-		var xPosition = (-GRAPH_SIZE / 2) + node.data.xRange.start + (node.data.xRange.end - node.data.xRange.start) / 2,
+		var xPosition = node.data.xRange.mean,
 			yPosition = (-GRAPH_SIZE / 2) + (yStep * node.data.distance);
 
 		node.data.initialPosition = new Vector(xPosition, yPosition);

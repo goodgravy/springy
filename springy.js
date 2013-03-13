@@ -60,6 +60,8 @@ var Edge = function(id, source, target, data) {
 // Edge data field used by layout alorithm
 //   	this.data.length
 //   	this.data.type
+// Data fields automatically populated by FlowChart algorithm:
+// 		this.data.xRange
 };
 
 Graph.prototype.addNode = function(node) {
@@ -170,7 +172,7 @@ Graph.prototype.parentsOf = function (node) {
 	return result;
 };
 
-// return list of nodes which only have outgoing edges
+// return list of nodes which don't have incoming edges
 Graph.prototype.getStartNodes = function () {
 	var that = this;
 	return this.getNodesWhere(function (node) {
@@ -348,6 +350,8 @@ Graph.prototype.getStronglyConnectedComponents = function () {
 };
 
 // call callback for startNode and each node accessible from startNode, breadth first
+// returning a false-y value from callback indicates the node has not been processed
+// and should be revisited later
 Graph.prototype.doBreadthFirstFrom = function (startNode, callback) {
 	var queue = [startNode];
 
@@ -699,14 +703,15 @@ Layout.Flowchart = function (graph, stiffness, repulsion, damping) {
 Layout.Flowchart.prototype = new Layout.ForceDirected;
 
 Layout.Flowchart.prototype.updatePosition = function (timestep) {
-	var that = this;
-	var startNodes = that.graph.getStartNodes();
+	var that = this,
+		startNodes = that.graph.getStartNodes();
 	that.eachNode(function (node, point) {
 		// don't move the start node
 		if (startNodes.indexOf(node) < 0) {
 			var movement = point.v.multiply(timestep),
 				nextPoint;
 			movement.x = 0; // don't move side-to-side
+			// movement.x = movement.x / 10; // don't move side-to-side
 			nextPoint = point.p.add(movement);
 
 			// children must be below parents
@@ -734,13 +739,6 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 	// ------ helpers for setInitialPositions ------ //
 
 	function hasOneChild (node) {
-		function sizeOf (obj) {
-			var size = 0, key;
-			for (key in obj) {
-				if (obj.hasOwnProperty(key)) size++;
-			}
-			return size;
-		}
 		return 1 === sizeOf(that.graph.adjacency[node.id]);
 	}
 
@@ -758,7 +756,10 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 	that.graph.doBreadthFirstFrom(startNode, function (node) {
 		var parents = that.graph.parentsOf(node),
 			distance = 0,
-			parentDistance = -1;
+			parentDistance = -1,
+			inboundEdges = [],
+			xRangeStart,
+			xRangeEnd;
 
 		for (var i = 0; i < parents.length; i++) {
 			var parent = parents[i];
@@ -767,11 +768,55 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 				return false;
 			} else {
 				parentDistance = Math.max(parent.data.distance, parentDistance);
+				var edges = that.graph.adjacency[parent.id][node.id];
+				if (edges.length < 1) { throw "Expected to fina an edge between "+node.id+" and "+childId; }
+				if (edges.length > 1) { throw "There can only be one edge between nodes: "+node.id+" and "+childId; + " have "+edges.length}
+				inboundEdges.push(edges[0]);
 			}
 		}
 
 		node.data.distance = parentDistance + 1;
 		maxDistance = node.data.distance;
+		xRangeStart = -GRAPH_SIZE / 2, xRangeEnd = GRAPH_SIZE / 2;
+
+		inboundEdges.sort(function (edgeA, edgeB) {
+			return edgeA.data.xRange.start - edgeB.data.xRange.start;
+		});
+		if (inboundEdges.length > 0) { // not start node
+			xRangeStart = xRangeEnd = inboundEdges[0].data.xRange.start;
+		}
+		inboundEdges.forEach(function (edge) {
+			if (edge.data.xRange.start === xRangeEnd) { // contiguous
+				xRangeEnd = edge.data.xRange.end;
+			} else { // TODO
+				// find total range across all sections
+				// find average x - mean of all ranges
+				// compare with nodes at same distance strata
+				throw "can't handle non-contiguous ranges yet";
+			}
+		});
+		node.data.xRange = {start: xRangeStart, end: xRangeEnd};
+
+		var numChildren = sizeOf(that.graph.adjacency[node.id]),
+			childRangeStep = (xRangeEnd - xRangeStart) / numChildren,
+			currentXRangeStart = xRangeStart;
+
+		for (var childId in that.graph.adjacency[node.id]) {
+			var child = that.graph.nodeSet[childId],
+				edges = that.graph.adjacency[node.id][childId],
+				edge;
+			edge = edges[0];
+			if (!("data" in edge)) { edge.data = {}}
+			if (!("xRange" in edge.data)) { edge.data.xRange = {}}
+			edge.data.xRange = {
+				start: currentXRangeStart,
+				end: currentXRangeStart + childRangeStep
+			};
+			// console.log(node.data.label+": "+JSON.stringify(edge.data.xRange));
+			// edge.data.label = JSON.stringify(edge.data.xRange);
+			currentXRangeStart += childRangeStep;
+		}
+
 		return true;
 	});
 
@@ -780,28 +825,32 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 
 	// nodes are initially evenly spaced down the graph by distance (Y)
 	that.graph.nodes.forEach(function (node) {
-		node.data.initialPosition = new Vector(0, (-GRAPH_SIZE / 2) + (yStep * node.data.distance));
+		var xPosition = (-GRAPH_SIZE / 2) + node.data.xRange.start + (node.data.xRange.end - node.data.xRange.start) / 2,
+			yPosition = (-GRAPH_SIZE / 2) + (yStep * node.data.distance);
+
+		node.data.initialPosition = new Vector(xPosition, yPosition);
+		console.info("initial position for " + node.data.label + ": "+JSON.stringify(node.data.initialPosition));
+		// node.data.label += " " + JSON.stringify(node.data.xRange);
 	});
 
-	// nodes are initially evenly spaced across the graph (X)
-	// we group nodes together in strata, by distance
-	for (var distance = 0; distance <= maxDistance; distance++) {
-		var nodes = that.graph.getNodesWhere(function (node) {
-				return node.data.distance === distance;
-			}),
-			xStep = GRAPH_SIZE / (nodes.length + 1);
+	// OLD X POSITION
+	// for (var distance = 0; distance <= maxDistance; distance++) {
+	// 	var nodes = that.graph.getNodesWhere(function (node) {
+	// 			return node.data.distance === distance;
+	// 		}),
+	// 		xStep = GRAPH_SIZE / (nodes.length + 1);
 
-		nodes.forEach(function (node, idx) {
-			// we prefer straight lines down graph if possible:
-			// for single-parent, only-child nodes: align horizontally with parent
-			var parents = that.graph.parentsOf(node);
-			if (parents.length === 1 && hasOneChild(parents[0])) {
-				node.data.initialPosition.x = parents[0].data.initialPosition.x;
-			} else {
-				node.data.initialPosition.x = (-GRAPH_SIZE / 2) + (xStep * (idx + 1));
-			}
-		});
-	}
+	// 	nodes.forEach(function (node, idx) {
+	// 		// we prefer straight lines down graph if possible:
+	// 		// for single-parent, only-child nodes: align horizontally with parent
+	// 		var parents = that.graph.parentsOf(node);
+	// 		if (parents.length === 1 && hasOneChild(parents[0])) {
+	// 			node.data.initialPosition.x = parents[0].data.initialPosition.x;
+	// 		} else {
+	// 			node.data.initialPosition.x = (-GRAPH_SIZE / 2) + (xStep * (idx + 1));
+	// 		}
+	// 	});
+	// }
 }
 
 // Renderer handles the layout rendering loop
@@ -859,4 +908,13 @@ if ( !Array.prototype.forEach ) {
 	  k++;
 	}
   };
+}
+
+// returns the number of keys in an object
+function sizeOf (obj) {
+	var size = 0, key;
+	for (key in obj) {
+		if (obj.hasOwnProperty(key)) size++;
+	}
+	return size;
 }

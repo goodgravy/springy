@@ -1,0 +1,42 @@
+<html>
+<body>
+<!-- <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js"></script> -->
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="springy.js"></script>
+<script src="springyui.js"></script>
+<!-- <script src="recipe.js"></script> -->
+<script>
+var graph = new Graph();
+
+var wake = graph.newNode({label: 'wake up'}),
+	bed = graph.newNode({label: 'get out of bed'}),
+	teeth = graph.newNode({label: 'brush teeth'}),
+	shower = graph.newNode({label: 'have shower'}),
+	dry = graph.newNode({label: 'dry off'}),
+	dress = graph.newNode({label: 'get dressed'}),
+	breakfast = graph.newNode({label: 'have breakfast'}),
+	leave = graph.newNode({label: 'leave'});
+
+graph.newEdge(wake, bed);
+graph.newEdge(bed, teeth);
+graph.newEdge(teeth, breakfast);
+graph.newEdge(bed, shower);
+graph.newEdge(shower, dry);
+graph.newEdge(dry, dress);
+graph.newEdge(dress, breakfast);
+graph.newEdge(breakfast, leave);
+
+jQuery(function(){
+	var springy = jQuery('#springydemo').springy({
+		graph: graph,
+		layout: Layout.Flowchart,
+		nodeSelected: function(node){
+			console.log('Node selected: ' + JSON.stringify(node.data));
+		}
+	});
+});
+</script>
+
+<canvas id="springydemo" width="640" height="480" />
+</body>
+</html>

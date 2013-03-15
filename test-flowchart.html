@@ -1,0 +1,113 @@
+<html>
+<body>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="springy.js"></script>
+<script src="springyui.js"></script>
+<style>
+div.graph-container {
+	width: 480px;
+	float: left;
+}
+</style>
+<script>
+$(function () {
+	function createContainerForCanvas(name) {
+		var element = $('<div class="graph-container">' + 
+			'<h1>' + name + '</h1>' +
+			'<canvas width="480" height="320">' +
+		'</div>');
+		$('body').append(element);
+		return $('canvas', element);
+	}
+	var graph;
+
+	graph = new Graph();
+	graph.addNodes('a', 'b', 'c');
+	graph.addEdges(['a', 'b'], ['b', 'c'], ['c', 'b']);
+	try {
+		var springy = createContainerForCanvas("Should fail: cyclic").springy({
+			graph: graph,
+			layout: Layout.Flowchart
+		});
+	} catch (e) { }
+
+	graph = new Graph();
+	graph.addNodes('a', 'b', 'c');
+	graph.addEdges(['a', 'c'], ['b', 'c']);
+	try {
+		var springy = createContainerForCanvas("Should fail: 2 start nodes").springy({
+			graph: graph,
+			layout: Layout.Flowchart
+		});
+	} catch (e) {}
+
+	graph = new Graph();
+	graph.addNodes('a', 'b', 'c');
+	graph.addEdges(['a', 'b'], ['b', 'c']);
+	var springy = createContainerForCanvas("Straight line").springy({
+		graph: graph,
+		layout: Layout.Flowchart
+	});
+
+	graph = new Graph();
+	graph.addNodes('a', 'b', 'c', 'd');
+	graph.addEdges(['a', 'b'], ['b', 'c'], ['b', 'd']);
+	var springy = createContainerForCanvas("Fork").springy({
+		graph: graph,
+		layout: Layout.Flowchart
+	});
+
+	graph = new Graph();
+	graph.addNodes('a', 'b', 'c', 'd', 'e');
+	graph.addEdges(['a', 'b'], ['b', 'c'], ['b', 'd'], ['c', 'e'], ['d', 'e']);
+	var springy = createContainerForCanvas("Fork and merge").springy({
+		graph: graph,
+		layout: Layout.Flowchart
+	});
+
+	graph = new Graph();
+	graph.addNodes('a', 'b', 'c', 'd', 'e', 'f', 'g');
+	graph.addEdges(['a', 'b'], ['b', 'c'], ['b', 'd'], ['c', 'e'],
+					['d', 'e'], ['d', 'f'], ['e', 'g'], ['f', 'g']);
+	var springy = createContainerForCanvas("More forks and merges").springy({
+		graph: graph,
+		layout: Layout.Flowchart
+	});
+
+	graph = new Graph();
+	graph.addNodes('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h');
+	graph.addEdges(['a', 'b'], ['b', 'c'], ['b', 'd'], ['c', 'e'],
+					['d', 'e'], ['d', 'f'], ['e', 'g'], ['f', 'g'],
+					['d', 'h'], ['h', 'f']);
+	var springy = createContainerForCanvas("Forks and merges galore 0").springy({
+		graph: graph,
+		layout: Layout.Flowchart
+	});
+
+	graph = new Graph();
+	graph.addNodes('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i');
+	graph.addEdges(['a', 'b'], ['b', 'c'], ['b', 'd'], ['c', 'e'],
+					['d', 'e'], ['d', 'f'], ['e', 'g'], ['f', 'g'],
+					['d', 'h'], ['h', 'f'], ['h', 'i'], ['i', 'f']);
+	var springy = createContainerForCanvas("Forks and merges galore 1").springy({
+		graph: graph,
+		layout: Layout.Flowchart
+	});
+
+	// Fork and 2 merges
+	graph = new Graph();
+	graph.addNodes('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j');
+	graph.addEdges(['a', 'b'], ['b', 'c'], ['b', 'd'], ['c', 'e'],
+					['d', 'e'], ['d', 'f'], ['e', 'g'], ['f', 'g'],
+					['d', 'h'], ['h', 'i'], ['i', 'j'], ['j', 'f']);
+	var springy = createContainerForCanvas("Forks and merges galore 2").springy({
+		graph: graph,
+		layout: Layout.Flowchart
+	});
+
+
+
+});</script>
+<body>
+</body>
+</html>

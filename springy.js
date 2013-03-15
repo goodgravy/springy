@@ -36,6 +36,7 @@ var Graph = function() {
 	this.nextNodeId = 0;
 	this.nextEdgeId = 0;
 	this.eventListeners = [];
+	this.renderEventListeners = [];
 };
 
 var Node = function(id, data) {
@@ -293,10 +294,18 @@ Graph.prototype.filterEdges = function(fn) {
 Graph.prototype.addGraphListener = function(obj) {
 	this.eventListeners.push(obj);
 };
+Graph.prototype.addGraphRenderListener = function(obj) {
+	this.renderEventListeners.push(obj);
+};
 
 Graph.prototype.notify = function() {
 	this.eventListeners.forEach(function(obj){
 		obj.graphChanged();
+	});
+};
+Graph.prototype.notifyRender = function() {
+	this.renderEventListeners.forEach(function(obj){
+		obj.graphRendered();
 	});
 };
 
@@ -575,6 +584,8 @@ Layout.ForceDirected.prototype.start = function(render, done) {
 		if (render !== undefined) {
 			render();
 		}
+
+		t.graph.notifyRender();
 
 		// stop simulation when an energy condition is met
 		if (t.shouldStop(t.totalEnergy())) {

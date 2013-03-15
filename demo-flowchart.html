@@ -30,6 +30,7 @@ jQuery(function(){
 	var springy = jQuery('#springydemo').springy({
 		graph: graph,
 		layout: Layout.Flowchart,
+		interactive: false,
 		nodeSelected: function(node){
 			console.log('Node selected: ' + JSON.stringify(node.data));
 		}

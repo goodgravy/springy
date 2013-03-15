@@ -28,6 +28,7 @@ Copyright (c) 2010 Dennis Hotson
 jQuery.fn.springy = function(params) {
 	var graph = this.graph = params.graph || new Graph();
 	var layout = params.layout || Layout.ForceDirected;
+	var interactive = "interactive" in params ? params.interactive : true;
 
 	var stiffness = params.stiffness || 400.0;
 	var repulsion = params.repulsion || 400.0;
@@ -44,8 +45,25 @@ jQuery.fn.springy = function(params) {
 	var targetBB = {bottomleft: new Vector(-2, -2), topright: new Vector(2, 2)};
 
 	// auto adjusting bounding box
-	Layout.requestAnimationFrame(function adjust() {
+	function adjust() {
+		if (layout.adjustingBB) {
+			return;
+		} else {
+			layout.adjustingBB = true;
+		}
+		doAdjust();
+	}
+	function doAdjust () {
 		targetBB = layout.getBoundingBox();
+
+		var targetDiag = targetBB.topright.subtract(targetBB.bottomleft),
+			currentDiag = currentBB.topright.subtract(currentBB.bottomleft);
+		if (Math.abs(targetDiag.magnitude() - currentDiag.magnitude()) < targetDiag.magnitude() / 1000) {
+			// finished
+			layout.adjustingBB = false;
+			return;
+		}
+
 		// current gets 20% closer to target every iteration
 		currentBB = {
 			bottomleft: currentBB.bottomleft.add( targetBB.bottomleft.subtract(currentBB.bottomleft)
@@ -54,7 +72,13 @@ jQuery.fn.springy = function(params) {
 				.divide(10))
 		};
 
-		Layout.requestAnimationFrame(adjust);
+		Layout.requestAnimationFrame(doAdjust);
+	}
+	Layout.requestAnimationFrame(adjust);
+	graph.addGraphRenderListener({
+		graphRendered: function () {
+			adjust();
+		}
 	});
 
 	// convert to/from screen coordinates
@@ -72,45 +96,47 @@ jQuery.fn.springy = function(params) {
 		return new Vector(px, py);
 	};
 
-	// half-assed drag and drop
 	var selected = null;
 	var nearest = null;
 	var dragged = null;
+	if (interactive) {
+		// half-assed drag and drop
 
-	jQuery(canvas).mousedown(function(e) {
-		jQuery('.actions').hide();
+		jQuery(canvas).mousedown(function(e) {
+			jQuery('.actions').hide();
 
-		var pos = jQuery(this).offset();
-		var p = fromScreen({x: e.pageX - pos.left, y: e.pageY - pos.top});
-		selected = nearest = dragged = layout.nearest(p);
+			var pos = jQuery(this).offset();
+			var p = fromScreen({x: e.pageX - pos.left, y: e.pageY - pos.top});
+			selected = nearest = dragged = layout.nearest(p);
 
-		if (selected.node !== null) {
-			dragged.point.m = 10000.0;
+			if (selected.node !== null) {
+				dragged.point.m = 10000.0;
 
-			if (nodeSelected) {
-				nodeSelected(selected.node);
+				if (nodeSelected) {
+					nodeSelected(selected.node);
+				}
 			}
-		}
 
-		renderer.start();
-	});
+			renderer.start();
+		});
 
-	jQuery(canvas).mousemove(function(e) {
-		var pos = jQuery(this).offset();
-		var p = fromScreen({x: e.pageX - pos.left, y: e.pageY - pos.top});
-		nearest = layout.nearest(p);
+		jQuery(canvas).mousemove(function(e) {
+			var pos = jQuery(this).offset();
+			var p = fromScreen({x: e.pageX - pos.left, y: e.pageY - pos.top});
+			nearest = layout.nearest(p);
 
-		if (dragged !== null && dragged.node !== null) {
-			dragged.point.p.x = p.x;
-			dragged.point.p.y = p.y;
-		}
+			if (dragged !== null && dragged.node !== null) {
+				dragged.point.p.x = p.x;
+				dragged.point.p.y = p.y;
+			}
 
-		renderer.start();
-	});
+			renderer.start();
+		});
 
-	jQuery(window).bind('mouseup',function(e) {
-		dragged = null;
-	});
+		jQuery(window).bind('mouseup',function(e) {
+			dragged = null;
+		});
+	} // endif interactive
 
 	Node.prototype.getWidth = function() {
 		var text = (this.data.label !== undefined) ? this.data.label : this.id;
@@ -263,7 +289,6 @@ jQuery.fn.springy = function(params) {
 			ctx.restore();
 		}
 	);
-
 	renderer.start();
 
 	// helpers for figuring out where to draw arrows

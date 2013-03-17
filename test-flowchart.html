@@ -58,6 +58,15 @@ $(function () {
 	});
 
 	graph = new Graph();
+	graph.addNodes('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h');
+	graph.addEdges(['a', 'b'], ['a', 'c'], ['b', 'd'], ['c', 'e'],
+					['d', 'f'], ['e', 'g'], ['f', 'h'], ['g', 'h']);
+	var springy = createContainerForCanvas("Prefer straight lines down graph").springy({
+		graph: graph,
+		layout: Layout.Flowchart
+	});
+
+	graph = new Graph();
 	graph.addNodes('a', 'b', 'c', 'd', 'e');
 	graph.addEdges(['a', 'b'], ['b', 'c'], ['b', 'd'], ['c', 'e'], ['d', 'e']);
 	var springy = createContainerForCanvas("Fork and merge").springy({
@@ -94,7 +103,6 @@ $(function () {
 		layout: Layout.Flowchart
 	});
 
-	// Fork and 2 merges
 	graph = new Graph();
 	graph.addNodes('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j');
 	graph.addEdges(['a', 'b'], ['b', 'c'], ['b', 'd'], ['c', 'e'],

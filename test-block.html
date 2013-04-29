@@ -1,0 +1,66 @@
+<html>
+<body>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="fabric.js"></script>
+<script src="springy.js"></script>
+<script src="springyui.js"></script>
+<script src="fabric-renderer.js"></script>
+<script>
+var graph = new Graph();
+
+graph.addNodes(
+	"Start",
+	"Cut paper strips for the notes",
+	"Write your notes on the paper strips",
+	"Roll the notes up into tight spirals",
+	"Drill holes through the wood block",
+	"Sand the block to round corners and clean up splinters",
+	"Cut pieces of your patterned paper",
+	"Mark where we will punch holes in the patterned paper",
+	"Glue crêpe on the bottom",
+	"Insert rolled notes into the holes",
+	"Glue crêpe on the top",
+	"Punch holes in the patterned paper",
+	"Stick patterned paper on the top and bottom",
+	"Stick washi tape round the edge",
+	"Leave to dry");
+graph.addEdges(
+	["Start", "Cut paper strips for the notes"],
+	["Cut paper strips for the notes", "Write your notes on the paper strips"],
+	["Write your notes on the paper strips", "Roll the notes up into tight spirals"],
+	["Start", "Drill holes through the wood block"],
+	["Drill holes through the wood block", "Sand the block to round corners and clean up splinters"],
+	["Sand the block to round corners and clean up splinters", "Mark where we will punch holes in the patterned paper"],
+	["Mark where we will punch holes in the patterned paper", "Glue crêpe on the bottom"],
+	["Mark where we will punch holes in the patterned paper", "Punch holes in the patterned paper"],
+	["Glue crêpe on the bottom", "Insert rolled notes into the holes"],
+	["Sand the block to round corners and clean up splinters", "Cut pieces of your patterned paper"],
+	["Cut pieces of your patterned paper", "Stick patterned paper on the top and bottom"],
+	["Punch holes in the patterned paper", "Stick patterned paper on the top and bottom"],
+	["Glue crêpe on the top", "Stick patterned paper on the top and bottom"],
+	["Roll the notes up into tight spirals", "Insert rolled notes into the holes"],
+	["Insert rolled notes into the holes", "Glue crêpe on the top"],
+	["Stick patterned paper on the top and bottom", "Stick washi tape round the edge"],
+	["Stick washi tape round the edge", "Leave to dry"]
+)
+
+jQuery(function(){
+	var springy = jQuery('#springydemo').springyFlow({
+		graph: graph,
+		layout: Layout.Flowchart,
+		interactive: false,
+		text: {
+			fontSize: 20,
+			backgroundColor: "white",
+			fill: "black"
+		},
+		nodeSelected: function(node){
+			console.log('Node selected: ' + JSON.stringify(node.data));
+		}
+	});
+});
+</script>
+
+<canvas id="springydemo" width="960" height="640" />
+</body>
+</html>

@@ -86,7 +86,8 @@ jQuery.fn.springy = function(params) {
 		var size = currentBB.topright.subtract(currentBB.bottomleft);
 		var sx = p.subtract(currentBB.bottomleft).divide(size.x).x * canvas.width;
 		var sy = p.subtract(currentBB.bottomleft).divide(size.y).y * canvas.height;
-		return new Vector(sx, sy);
+		var res = new Vector(sx, sy);
+		return res;
 	};
 
 	fromScreen = function(s) {

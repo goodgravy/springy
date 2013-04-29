@@ -807,11 +807,22 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 			xRangeSize = GRAPH_SIZE;
 		} else {
 			xRangeSize = 0;
+			var msg = "";
 			inboundEdges.forEach(function (edge) {
 				xRangeSize += edge.data.xRange.size;
 				xRangeMean += edge.data.xRange.mean * edge.data.xRange.size;
+				msg += ", " + xRangeSize;
 			});
 			xRangeMean /= xRangeSize;
+			console.log(node.data.label + " size: "+xRangeSize + " mean: "+xRangeMean + " from "+msg);
+
+			var boundsExtendToLeft = ((xRangeMean - xRangeSize / 2) - -GRAPH_SIZE / 2 === 0),
+				boundsExtendToRight = ((xRangeMean + xRangeSize / 2) - GRAPH_SIZE / 2 === 0);
+			// XXX: why was this here
+			// if (! (boundsExtendToLeft && boundsExtendToRight)) {
+			// 	if (boundsExtendToLeft) { xRangeMean = 0; }
+			// 	if (boundsExtendToRight) { xRangeMean = GRAPH_SIZE; }
+			// }
 		}
 		node.data.xRange = {size: xRangeSize, mean: xRangeMean};
 
@@ -829,7 +840,7 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 				mean: currentXRangeMean,
 				size: childXRangeSize
 			};
-			// edge.data.label = JSON.stringify(edge.data.xRange);
+			edge.data.label = JSON.stringify(edge.data.xRange);
 			currentXRangeMean += childXRangeSize;
 		}
 

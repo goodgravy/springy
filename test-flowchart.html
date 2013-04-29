@@ -27,7 +27,8 @@ $(function () {
 	try {
 		var springy = createContainerForCanvas("Should fail: cyclic").springy({
 			graph: graph,
-			layout: Layout.Flowchart
+			layout: Layout.Flowchart,
+			interactive: false
 		});
 	} catch (e) { }
 
@@ -37,7 +38,8 @@ $(function () {
 	try {
 		var springy = createContainerForCanvas("Should fail: 2 start nodes").springy({
 			graph: graph,
-			layout: Layout.Flowchart
+			layout: Layout.Flowchart,
+			interactive: false
 		});
 	} catch (e) {}
 
@@ -46,7 +48,8 @@ $(function () {
 	graph.addEdges(['a', 'b'], ['b', 'c']);
 	var springy = createContainerForCanvas("Straight line").springy({
 		graph: graph,
-		layout: Layout.Flowchart
+		layout: Layout.Flowchart,
+		interactive: false
 	});
 
 	graph = new Graph();
@@ -54,7 +57,8 @@ $(function () {
 	graph.addEdges(['a', 'b'], ['b', 'c'], ['b', 'd']);
 	var springy = createContainerForCanvas("Fork").springy({
 		graph: graph,
-		layout: Layout.Flowchart
+		layout: Layout.Flowchart,
+		interactive: false
 	});
 
 	graph = new Graph();
@@ -63,7 +67,8 @@ $(function () {
 					['d', 'f'], ['e', 'g'], ['f', 'h'], ['g', 'h']);
 	var springy = createContainerForCanvas("Prefer straight lines down graph").springy({
 		graph: graph,
-		layout: Layout.Flowchart
+		layout: Layout.Flowchart,
+		interactive: false
 	});
 
 	graph = new Graph();
@@ -71,7 +76,8 @@ $(function () {
 	graph.addEdges(['a', 'b'], ['b', 'c'], ['b', 'd'], ['c', 'e'], ['d', 'e']);
 	var springy = createContainerForCanvas("Fork and merge").springy({
 		graph: graph,
-		layout: Layout.Flowchart
+		layout: Layout.Flowchart,
+		interactive: false
 	});
 
 	graph = new Graph();
@@ -80,7 +86,8 @@ $(function () {
 					['d', 'e'], ['d', 'f'], ['e', 'g'], ['f', 'g']);
 	var springy = createContainerForCanvas("More forks and merges").springy({
 		graph: graph,
-		layout: Layout.Flowchart
+		layout: Layout.Flowchart,
+		interactive: false
 	});
 
 	graph = new Graph();
@@ -90,7 +97,8 @@ $(function () {
 					['d', 'h'], ['h', 'f']);
 	var springy = createContainerForCanvas("Forks and merges galore 0").springy({
 		graph: graph,
-		layout: Layout.Flowchart
+		layout: Layout.Flowchart,
+		interactive: false
 	});
 
 	graph = new Graph();
@@ -100,7 +108,8 @@ $(function () {
 					['d', 'h'], ['h', 'f'], ['h', 'i'], ['i', 'f']);
 	var springy = createContainerForCanvas("Forks and merges galore 1").springy({
 		graph: graph,
-		layout: Layout.Flowchart
+		layout: Layout.Flowchart,
+		interactive: false
 	});
 
 	graph = new Graph();
@@ -110,7 +119,8 @@ $(function () {
 					['d', 'h'], ['h', 'i'], ['i', 'j'], ['j', 'f']);
 	var springy = createContainerForCanvas("Forks and merges galore 2").springy({
 		graph: graph,
-		layout: Layout.Flowchart
+		layout: Layout.Flowchart,
+		interactive: false
 	});
 
 

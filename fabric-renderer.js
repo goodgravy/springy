@@ -59,7 +59,8 @@ jQuery.fn.springyFlow = function (params) {
 			var screenP = toScreen(p),
 				params = $.extend({}, textParams, {
 					left: screenP.x,
-					top: screenP.y
+					top: screenP.y,
+					textAlign: "center"
 				});
 				text = new fabric.Text(node.data.label, params);
 			canvas.add(text);

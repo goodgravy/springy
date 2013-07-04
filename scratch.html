@@ -1,0 +1,42 @@
+<html>
+<body>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+<script src="springy-scratch.js"></script>
+<script src="springyui-scratch.js"></script>
+<script>
+var graph = new Graph();
+
+var start = graph.newNode({label: 'Start'});
+var a = graph.newNode({label: 'a'});
+var b = graph.newNode({label: 'b'});
+var c = graph.newNode({label: 'c'});
+var d = graph.newNode({label: 'd'});
+var end = graph.newNode({label: 'End'});
+// var barbara = graph.newNode({label: 'Barbara'});
+// var franklin = graph.newNode({label: 'Franklin'});
+// var monty = graph.newNode({label: 'Monty'});
+// var james = graph.newNode({label: 'James'});
+// var bianca = graph.newNode({label: 'Bianca'});
+
+graph.newEdge(start, a);
+graph.newEdge(start, b);
+graph.newEdge(a, c);
+// graph.newEdge(a, d);
+// graph.newEdge(b, c);
+graph.newEdge(b, d);
+graph.newEdge(c, end);
+graph.newEdge(d, end);
+
+jQuery(function(){
+	var springy = jQuery('#springydemo').springy({
+		graph: graph,
+		nodeSelected: function(node){
+			console.log('Node selected: ' + JSON.stringify(node.data));
+		}
+	});
+});
+</script>
+
+<canvas id="springydemo" width="640" height="480" />
+</body>
+</html>

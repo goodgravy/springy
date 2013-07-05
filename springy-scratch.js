@@ -575,11 +575,11 @@ Layout.ForceDirected.prototype.start = function(render, done) {
 	this._started = true;
 
 	Layout.requestAnimationFrame(function step() {
-		// t.applyCoulombsLaw();
-		// t.applyHookesLaw();
-		// t.attractToCentre();
-		// t.updateVelocity(0.03);
-		// t.updatePosition(0.03);
+		t.applyCoulombsLaw();
+		t.applyHookesLaw();
+		t.attractToCentre();
+		t.updateVelocity(0.03);
+		t.updatePosition(0.03);
 
 		if (render !== undefined) {
 			render();
@@ -637,7 +637,7 @@ Layout.ForceDirected.prototype.getBoundingBox = function() {
 		}
 	});
 
-	var padding = topright.subtract(bottomleft).multiply(0.07); // ~5% padding
+	var padding = topright.subtract(bottomleft).multiply(0.15); // ~5% padding
 
 	return {bottomleft: bottomleft.subtract(padding), topright: topright.add(padding)};
 };
@@ -797,6 +797,7 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 		}
 
 		node.data.distance = parentDistance + 1;
+		// node.data.label += " (" + node.data.distance + ")";
 		maxDistance = node.data.distance;
 		xRangeMean = 0;
 
@@ -840,7 +841,7 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 				mean: currentXRangeMean,
 				size: childXRangeSize
 			};
-			edge.data.label = JSON.stringify(edge.data.xRange);
+			// edge.data.label = JSON.stringify(edge.data.xRange);
 			currentXRangeMean += childXRangeSize;
 		}
 

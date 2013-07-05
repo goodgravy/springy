@@ -637,7 +637,7 @@ Layout.ForceDirected.prototype.getBoundingBox = function() {
 		}
 	});
 
-	var padding = topright.subtract(bottomleft).multiply(0.07); // ~5% padding
+	var padding = topright.subtract(bottomleft).multiply(0.15); // ~5% padding
 
 	return {bottomleft: bottomleft.subtract(padding), topright: topright.add(padding)};
 };
@@ -797,6 +797,7 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 		}
 
 		node.data.distance = parentDistance + 1;
+		node.data.label += " (" + node.data.distance + ")";
 		maxDistance = node.data.distance;
 		xRangeMean = 0;
 
@@ -857,11 +858,11 @@ Layout.Flowchart.prototype.setInitialPositions = function () {
 
 		// prefer straight lines down graph:
 		// if we are an only child of a single parent, place directly below parent
-		if (parents.length === 1 && that.graph.childrenOf(parents[0]).length === 1) {
-			xPosition = parents[0].data.initialPosition.x;
-		} else {
+		// if (parents.length === 1 && that.graph.childrenOf(parents[0]).length === 1) {
+		// 	xPosition = parents[0].data.initialPosition.x;
+		// } else {
 			xPosition = node.data.xRange.mean;
-		}
+		// }
 
 		node.data.initialPosition = new Vector(xPosition, yPosition);
 		// node.data.label += " " + JSON.stringify(node.data.xRange);

@@ -63,8 +63,8 @@ $(function () {
 
 	graph = new Graph();
 	graph.addNodes('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h');
-	graph.addEdges(['a', 'b'], ['a', 'c'], ['b', 'd'], ['c', 'e'],
-					['d', 'f'], ['e', 'g'], ['f', 'h'], ['g', 'h']);
+	graph.addEdges(['a', 'b'], ['a', 'g'], ['b', 'c'], ['c', 'd'],
+					['d', 'e'], ['e', 'f'], ['f', 'h'], ['g', 'h']);
 	var springy = createContainerForCanvas("Prefer straight lines down graph").springy({
 		graph: graph,
 		layout: Layout.Flowchart,

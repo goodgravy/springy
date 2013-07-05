@@ -251,8 +251,8 @@ jQuery.fn.springy = function(params) {
 				ctx.save();
 				ctx.textAlign = "center";
 				ctx.textBaseline = "top";
-				ctx.font = "10px Helvetica, sans-serif";
-				ctx.fillStyle = "#5BA6EC";
+				ctx.font = "12px Helvetica, sans-serif";
+				ctx.fillStyle = "#5B56EC";
 				ctx.fillText(text, (x1+x2)/2, (y1+y2)/2);
 				ctx.restore();
 			}
